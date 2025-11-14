@@ -1,0 +1,372 @@
+"""
+Integration tests for Phase 1: Foundation and Setup
+Tests GCS storage, S3 to GCS transfer, and end-to-end file workflow
+"""
+import os
+import sys
+import unittest
+import tempfile
+import time
+
+# Add src to path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
+from src.google_cloud.gcs_storage import GCSStorage
+from src.aws.s3_to_gcs_transfer import S3ToGCSTransfer
+from src.aws.s3_storage import S3Storage
+from config.google_cloud_config import (
+    GCS_BUCKET_NAME,
+    S3_BUCKET_NAME,
+    GCP_SERVICE_ACCOUNT_KEY
+)
+
+
+class TestGCSStorage(unittest.TestCase):
+    """Test Google Cloud Storage operations"""
+    
+    @classmethod
+    def setUpClass(cls):
+        """Initialize GCS client once for all tests"""
+        try:
+            cls.gcs = GCSStorage(
+                bucket_name=GCS_BUCKET_NAME,
+                credentials_path=GCP_SERVICE_ACCOUNT_KEY
+            )
+            print("\n✅ GCS client initialized")
+        except Exception as e:
+            raise unittest.SkipTest(f"Cannot initialize GCS: {e}")
+    
+    def setUp(self):
+        """Create a test file before each test"""
+        self.test_content = f"Test file created at {time.time()}"
+        self.temp_file = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt')
+        self.temp_file.write(self.test_content)
+        self.temp_file.close()
+        
+        self.test_gcs_key = f"test/integration/{int(time.time())}/test.txt"
+    
+    def tearDown(self):
+        """Cleanup after each test"""
+        # Delete test file from GCS
+        if hasattr(self, 'test_gcs_key'):
+            self.gcs.delete_file(self.test_gcs_key)
+        
+        # Delete local temp file
+        if hasattr(self, 'temp_file') and os.path.exists(self.temp_file.name):
+            os.remove(self.temp_file.name)
+    
+    def test_01_upload_file(self):
+        """Test uploading file to GCS"""
+        result = self.gcs.upload_file(
+            local_file_path=self.temp_file.name,
+            gcs_key=self.test_gcs_key
+        )
+        
+        self.assertTrue(result["success"], f"Upload failed: {result.get('error')}")
+        self.assertEqual(result["gcs_key"], self.test_gcs_key)
+        self.assertIn("gcs_uri", result)
+        self.assertGreater(result["size"], 0)
+        
+        print(f"✅ Upload test passed: {result['gcs_uri']}")
+    
+    def test_02_file_exists(self):
+        """Test checking if file exists"""
+        # Upload file first
+        self.gcs.upload_file(self.temp_file.name, self.test_gcs_key)
+        
+        # Check existence
+        exists = self.gcs.file_exists(self.test_gcs_key)
+        self.assertTrue(exists, "File should exist after upload")
+        
+        # Check non-existent file
+        not_exists = self.gcs.file_exists("nonexistent/file.txt")
+        self.assertFalse(not_exists, "Non-existent file should return False")
+        
+        print("✅ File exists test passed")
+    
+    def test_03_download_file(self):
+        """Test downloading file from GCS"""
+        # Upload file first
+        self.gcs.upload_file(self.temp_file.name, self.test_gcs_key)
+        
+        # Download to new location
+        download_path = self.temp_file.name + ".downloaded"
+        
+        result = self.gcs.download_file(
+            gcs_key=self.test_gcs_key,
+            local_file_path=download_path
+        )
+        
+        self.assertTrue(result["success"], f"Download failed: {result.get('error')}")
+        self.assertTrue(os.path.exists(download_path), "Downloaded file should exist")
+        
+        # Verify content
+        with open(download_path, 'r') as f:
+            content = f.read()
+        
+        self.assertEqual(content, self.test_content, "Content should match")
+        
+        # Cleanup
+        os.remove(download_path)
+        
+        print("✅ Download test passed")
+    
+    def test_04_list_files(self):
+        """Test listing files with prefix"""
+        # Upload a few test files
+        prefix = f"test/list/{int(time.time())}"
+        keys = [f"{prefix}/file{i}.txt" for i in range(3)]
+        
+        for key in keys:
+            self.gcs.upload_file(self.temp_file.name, key)
+        
+        # List files
+        result = self.gcs.list_files(prefix=prefix)
+        
+        self.assertTrue(result["success"], f"List failed: {result.get('error')}")
+        self.assertEqual(result["count"], 3, "Should find 3 files")
+        
+        # Cleanup
+        for key in keys:
+            self.gcs.delete_file(key)
+        
+        print("✅ List files test passed")
+    
+    def test_05_delete_file(self):
+        """Test deleting file from GCS"""
+        # Upload file first
+        self.gcs.upload_file(self.temp_file.name, self.test_gcs_key)
+        
+        # Verify it exists
+        self.assertTrue(self.gcs.file_exists(self.test_gcs_key))
+        
+        # Delete it
+        result = self.gcs.delete_file(self.test_gcs_key)
+        
+        self.assertTrue(result["success"], f"Delete failed: {result.get('error')}")
+        
+        # Verify it's gone
+        self.assertFalse(self.gcs.file_exists(self.test_gcs_key))
+        
+        print("✅ Delete test passed")
+
+
+class TestS3ToGCSTransfer(unittest.TestCase):
+    """Test S3 to GCS file transfer"""
+    
+    @classmethod
+    def setUpClass(cls):
+        """Initialize services once for all tests"""
+        try:
+            cls.s3 = S3Storage()
+            cls.gcs = GCSStorage(
+                bucket_name=GCS_BUCKET_NAME,
+                credentials_path=GCP_SERVICE_ACCOUNT_KEY
+            )
+            cls.transfer = S3ToGCSTransfer(
+                s3_storage=cls.s3,
+                gcs_storage=cls.gcs
+            )
+            print("\n✅ Transfer service initialized")
+        except Exception as e:
+            raise unittest.SkipTest(f"Cannot initialize transfer service: {e}")
+    
+    def setUp(self):
+        """Create test file and upload to S3"""
+        # Create local test file
+        self.test_content = f"Transfer test at {time.time()}"
+        self.temp_file = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt')
+        self.temp_file.write(self.test_content)
+        self.temp_file.close()
+        
+        # Upload to S3
+        self.s3_key = f"test/transfer/{int(time.time())}/test.txt"
+        upload_result = self.s3.upload_file(self.temp_file.name, self.s3_key)
+        
+        if not upload_result["success"]:
+            raise unittest.SkipTest(f"Cannot upload to S3: {upload_result.get('error')}")
+        
+        self.gcs_key = f"test/transfer/{int(time.time())}/test.txt"
+    
+    def tearDown(self):
+        """Cleanup S3 and GCS"""
+        # Delete from S3
+        if hasattr(self, 's3_key'):
+            self.s3.delete_file(self.s3_key)
+        
+        # Delete from GCS
+        if hasattr(self, 'gcs_key'):
+            self.gcs.delete_file(self.gcs_key)
+        
+        # Delete local temp file
+        if hasattr(self, 'temp_file') and os.path.exists(self.temp_file.name):
+            os.remove(self.temp_file.name)
+    
+    def test_01_transfer_file(self):
+        """Test basic file transfer from S3 to GCS"""
+        result = self.transfer.transfer_file(
+            s3_key=self.s3_key,
+            gcs_key=self.gcs_key,
+            verify_integrity=True
+        )
+        
+        self.assertTrue(result["success"], f"Transfer failed: {result.get('error')}")
+        self.assertEqual(result["s3_key"], self.s3_key)
+        self.assertEqual(result["gcs_key"], self.gcs_key)
+        self.assertIn("gcs_uri", result)
+        self.assertGreater(result["file_size"], 0)
+        self.assertIn("transfer_duration", result)
+        self.assertIn("checksum", result)
+        
+        # Verify file exists in GCS
+        self.assertTrue(self.gcs.file_exists(self.gcs_key))
+        
+        print(f"✅ Transfer test passed: {result['gcs_uri']} in {result['transfer_duration']:.2f}s")
+    
+    def test_02_transfer_with_integrity_check(self):
+        """Test transfer with integrity verification"""
+        result = self.transfer.transfer_file(
+            s3_key=self.s3_key,
+            gcs_key=self.gcs_key,
+            verify_integrity=True
+        )
+        
+        self.assertTrue(result["success"])
+        self.assertIn("checksum", result)
+        
+        print(f"✅ Integrity check test passed (checksum: {result['checksum']})")
+    
+    def test_03_transfer_nonexistent_file(self):
+        """Test transferring a file that doesn't exist in S3"""
+        result = self.transfer.transfer_file(
+            s3_key="nonexistent/file.txt",
+            gcs_key=self.gcs_key
+        )
+        
+        self.assertFalse(result["success"], "Should fail for non-existent file")
+        self.assertIn("error", result)
+        
+        print("✅ Nonexistent file test passed")
+
+
+class TestEndToEndWorkflow(unittest.TestCase):
+    """Test complete workflow from S3 to GCS to processing"""
+    
+    @classmethod
+    def setUpClass(cls):
+        """Initialize all services"""
+        try:
+            cls.s3 = S3Storage()
+            cls.gcs = GCSStorage(
+                bucket_name=GCS_BUCKET_NAME,
+                credentials_path=GCP_SERVICE_ACCOUNT_KEY
+            )
+            cls.transfer = S3ToGCSTransfer(
+                s3_storage=cls.s3,
+                gcs_storage=cls.gcs
+            )
+            print("\n✅ End-to-end test initialized")
+        except Exception as e:
+            raise unittest.SkipTest(f"Cannot initialize services: {e}")
+    
+    def test_presentation_workflow(self):
+        """
+        Test complete presentation workflow:
+        1. Upload audio to S3
+        2. Transfer to GCS
+        3. Generate GCS URI
+        4. Cleanup
+        """
+        presentation_id = f"test_pres_{int(time.time())}"
+        
+        # Step 1: Create test audio file
+        test_content = "Mock audio content"
+        temp_file = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.mp3')
+        temp_file.write(test_content)
+        temp_file.close()
+        
+        try:
+            # Step 2: Upload to S3
+            s3_key = f"presentations/{presentation_id}/audio/original.mp3"
+            upload_result = self.s3.upload_file(temp_file.name, s3_key)
+            self.assertTrue(upload_result["success"], "S3 upload should succeed")
+            
+            # Step 3: Transfer to GCS
+            transfer_result = self.transfer.transfer_presentation_audio(
+                presentation_id=presentation_id,
+                s3_audio_key=s3_key
+            )
+            self.assertTrue(transfer_result["success"], "Transfer should succeed")
+            
+            gcs_uri = transfer_result["gcs_uri"]
+            self.assertIn("gs://", gcs_uri, "Should return GCS URI")
+            
+            # Step 4: Verify file in GCS
+            gcs_key = transfer_result["gcs_key"]
+            self.assertTrue(self.gcs.file_exists(gcs_key), "File should exist in GCS")
+            
+            # Step 5: Cleanup
+            cleanup_result = self.gcs.cleanup_presentation(presentation_id)
+            self.assertTrue(cleanup_result["success"], "Cleanup should succeed")
+            self.assertEqual(cleanup_result["deleted_count"], 1, "Should delete 1 file")
+            
+            # Verify cleanup
+            self.assertFalse(self.gcs.file_exists(gcs_key), "File should be deleted")
+            
+            print(f"✅ End-to-end workflow passed for {presentation_id}")
+            
+        finally:
+            # Cleanup S3
+            self.s3.delete_file(s3_key)
+            
+            # Cleanup local file
+            if os.path.exists(temp_file.name):
+                os.remove(temp_file.name)
+
+
+def run_phase1_tests():
+    """Run all Phase 1 integration tests"""
+    print("\n" + "="*60)
+    print("PHASE 1 INTEGRATION TESTS")
+    print("Foundation and Setup (Week 1-2)")
+    print("="*60)
+    
+    # Create test suite
+    loader = unittest.TestLoader()
+    suite = unittest.TestSuite()
+    
+    # Add test classes
+    suite.addTests(loader.loadTestsFromTestCase(TestGCSStorage))
+    suite.addTests(loader.loadTestsFromTestCase(TestS3ToGCSTransfer))
+    suite.addTests(loader.loadTestsFromTestCase(TestEndToEndWorkflow))
+    
+    # Run tests
+    runner = unittest.TextTestRunner(verbosity=2)
+    result = runner.run(suite)
+    
+    # Summary
+    print("\n" + "="*60)
+    print("PHASE 1 TEST SUMMARY")
+    print("="*60)
+    print(f"Tests run: {result.testsRun}")
+    print(f"Successes: {result.testsRun - len(result.failures) - len(result.errors)}")
+    print(f"Failures: {len(result.failures)}")
+    print(f"Errors: {len(result.errors)}")
+    
+    if result.wasSuccessful():
+        print("\n✅ ALL PHASE 1 TESTS PASSED!")
+        print("\nPhase 1 Deliverables Verified:")
+        print("  ✅ GCS storage operations (upload, download, list, delete)")
+        print("  ✅ S3 to GCS file transfer with retry and integrity check")
+        print("  ✅ End-to-end presentation workflow")
+        print("  ✅ Error handling and cleanup")
+    else:
+        print("\n❌ SOME TESTS FAILED")
+        print("Please review failures above and fix issues")
+    
+    return result.wasSuccessful()
+
+
+if __name__ == "__main__":
+    success = run_phase1_tests()
+    sys.exit(0 if success else 1)

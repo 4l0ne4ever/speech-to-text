@@ -6,7 +6,7 @@ import json
 import os
 from typing import Optional, List, Dict
 from datetime import datetime
-from models import (
+from .models import (
     Presentation, AudioFile, SlideFile, Transcript, TranscriptSegment,
     PresentationStatus
 )
