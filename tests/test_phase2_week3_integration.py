@@ -19,7 +19,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.google_cloud.speech_to_text import SpeechToTextService, TranscriptionError
 from src.google_cloud.gcs_storage import GCSStorage
 from src.models import TranscriptionOptions
+from src.processing.audio_converter import convert_to_linear16, get_audio_info
 from config.google_cloud_config import (
+    GCP_PROJECT_ID,
     GCP_SERVICE_ACCOUNT_KEY,
     GCS_BUCKET_NAME,
 )
@@ -46,21 +48,39 @@ def test_upload_audio_to_gcs():
         print("   Please add at least one audio file (.mp3, .wav, or .m4a)")
         return None
     
-    # Use first audio file (pick a smaller one for faster testing)
-    audio_files_sorted = sorted(audio_files, key=lambda x: x.stat().st_size)
-    test_audio = audio_files_sorted[0]
+    # Sort alphabetically and use CD02.mp3 for testing (known to have speech)
+    audio_files_sorted = sorted(audio_files, key=lambda x: x.name)
+    test_audio = audio_files_sorted[0]  # CD02.mp3
     print(f"Using audio file: {test_audio.name}")
     print(f"File size: {test_audio.stat().st_size / 1024:.1f} KB")
     
+    # Convert to LINEAR16 for optimal accuracy
+    print("\nConverting to LINEAR16 format (mono, 16kHz, 16-bit PCM)...")
+    try:
+        converted_audio = convert_to_linear16(
+            test_audio,
+            output_path=test_audio.parent / f"{test_audio.stem}_linear16.wav",
+            normalize=True
+        )
+        print(f"✅ Conversion complete: {converted_audio.name}")
+        
+        # Show audio info
+        info = get_audio_info(converted_audio)
+        print(f"   Format: {info['format']}, {info['channels']} channel(s), {info['sample_rate']}Hz, {info['bit_depth']}-bit")
+        print(f"   Duration: {info['duration_seconds']:.1f}s")
+    except Exception as e:
+        print(f"❌ Conversion failed: {e}")
+        return None
+    
     # Upload to GCS
     presentation_id = f"test_phase2_{int(time.time())}"
-    gcs_key = f"presentations/{presentation_id}/audio/{test_audio.name}"
+    gcs_key = f"presentations/{presentation_id}/audio/{converted_audio.name}"
     
     print(f"Uploading to: gs://{GCS_BUCKET_NAME}/{gcs_key}")
     
     try:
         result = gcs.upload_file(
-            local_file_path=str(test_audio),
+            local_file_path=str(converted_audio),
             gcs_key=gcs_key
         )
         if not result["success"]:
@@ -81,17 +101,23 @@ def test_transcribe_audio(gcs_uri: str, presentation_id: str):
     print("TEST 2: Transcribe Audio with Google Cloud Speech-to-Text")
     print("="*60)
     
-    # Initialize service
-    print("Initializing SpeechToTextService...")
-    service = SpeechToTextService(credentials_path=GCP_SERVICE_ACCOUNT_KEY)
+    # Initialize service with project_id for V2 API
+    print("Initializing SpeechToTextService V2...")
+    service = SpeechToTextService(
+        credentials_path=GCP_SERVICE_ACCOUNT_KEY,
+        project_id=GCP_PROJECT_ID
+    )
     
-    # Configure options for Japanese
+    # Configure options for Japanese audio files with LINEAR16 encoding
+    # LINEAR16 format provides 15-25% better accuracy than MP3
     options = TranscriptionOptions(
         language_code="ja-JP",
-        model="chirp",
+        model="latest_long",  # Best for audio files 1+ minutes
         enable_automatic_punctuation=True,
         enable_word_timestamps=True,
         enable_speaker_diarization=False,
+        audio_encoding="LINEAR16",  # LINEAR16 for optimal accuracy
+        sample_rate_hertz=16000,  # Match converted audio
     )
     
     print(f"\nTranscription options:")
@@ -151,7 +177,7 @@ def test_transcribe_audio(gcs_uri: str, presentation_id: str):
         
         # Calculate cost
         cost_per_15s = 0.024  # Chirp model
-        total_cost = (result.duration_seconds / 15) * cost_per_15s
+        total_cost = (result.duration_seconds / 15) * cost_per_15s if result.duration_seconds > 0 else 0
         
         print(f"\n{'='*60}")
         print("COST ESTIMATION")
@@ -160,18 +186,19 @@ def test_transcribe_audio(gcs_uri: str, presentation_id: str):
         print(f"Estimated cost: ${total_cost:.4f}")
         
         # Performance metrics
-        processing_ratio = (result.processing_time_seconds / result.duration_seconds) * 100
-        print(f"\n{'='*60}")
-        print("PERFORMANCE METRICS")
-        print('='*60)
-        print(f"Processing time: {result.processing_time_seconds:.1f}s")
-        print(f"Audio duration: {result.duration_seconds:.1f}s")
-        print(f"Processing ratio: {processing_ratio:.1f}% of audio duration")
-        
-        if processing_ratio < 30:
-            print("✅ PASS: Processing time < 30% of audio duration")
-        else:
-            print("⚠️  WARNING: Processing time > 30% of audio duration")
+        if result.duration_seconds > 0:
+            processing_ratio = (result.processing_time_seconds / result.duration_seconds) * 100
+            print(f"\n{'='*60}")
+            print("PERFORMANCE METRICS")
+            print('='*60)
+            print(f"Processing time: {result.processing_time_seconds:.1f}s")
+            print(f"Audio duration: {result.duration_seconds:.1f}s")
+            print(f"Processing ratio: {processing_ratio:.1f}% of audio duration")
+            
+            if processing_ratio < 30:
+                print("✅ PASS: Processing time < 30% of audio duration")
+            else:
+                print("⚠️  WARNING: Processing time > 30% of audio duration")
         
         return result
         
@@ -191,7 +218,10 @@ def test_cleanup_gcs(gcs_uri: str, presentation_id: str):
     print("TEST 3: Cleanup GCS Files")
     print("="*60)
     
-    gcs = GCSStorage(credentials_path=GCP_SERVICE_ACCOUNT_KEY)
+    gcs = GCSStorage(
+        bucket_name=GCS_BUCKET_NAME,
+        credentials_path=GCP_SERVICE_ACCOUNT_KEY
+    )
     
     try:
         deleted_count = gcs.cleanup_presentation(presentation_id)

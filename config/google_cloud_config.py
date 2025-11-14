@@ -63,8 +63,10 @@ GCS_TEMP_PREFIX = "temp"
 SPEECH_LANGUAGE_CODE = os.getenv("SPEECH_LANGUAGE_CODE", "ja-JP")
 
 # Model selection
-# Per plan: "Set the model to 'chirp' for best accuracy"
-SPEECH_MODEL = os.getenv("SPEECH_MODEL", "chirp")  # Options: "chirp", "latest_long", "latest_short"
+# latest_long: For audio files > 60s (best for recordings)
+# latest_short: For audio files < 60s (faster, lower quality)
+# Default for file-based: latest_long, for streaming: latest_long
+SPEECH_MODEL = os.getenv("SPEECH_MODEL", "latest_long")
 
 # Recognition configuration
 SPEECH_CONFIG = {

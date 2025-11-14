@@ -16,7 +16,7 @@ from src.google_cloud.result_storage import GCSResultStorage
 from src.models import TranscriptionResult, WordInfo
 from config.google_cloud_config import (
     GCP_SERVICE_ACCOUNT_KEY,
-    GCS_INTERMEDIATE_BUCKET,
+    GCS_BUCKET_NAME,
 )
 
 
@@ -106,11 +106,11 @@ def test_save_to_gcs():
     
     # Save to GCS
     storage = GCSResultStorage(
-        bucket_name=GCS_INTERMEDIATE_BUCKET,
+        bucket_name=GCS_BUCKET_NAME,
         credentials_path=GCP_SERVICE_ACCOUNT_KEY
     )
     
-    print(f"Saving to GCS bucket: {GCS_INTERMEDIATE_BUCKET}")
+    print(f"Saving to GCS bucket: {GCS_BUCKET_NAME}")
     print(f"Presentation ID: {result.presentation_id}")
     
     try:
@@ -186,7 +186,7 @@ def main():
         return
     
     print("\n✅ Credentials found")
-    print(f"✅ GCS bucket: {GCS_INTERMEDIATE_BUCKET}")
+    print(f"✅ GCS bucket: {GCS_BUCKET_NAME}")
     
     # Run tests
     print("\n" + "="*70)

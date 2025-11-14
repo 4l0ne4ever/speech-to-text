@@ -1,8 +1,8 @@
 """
-Google Cloud Speech-to-Text service for transcribing Japanese audio files.
+Google Cloud Speech-to-Text V2 service for transcribing Japanese audio files.
 
 This module provides a high-level interface for transcribing audio files using
-Google Cloud's Speech-to-Text API with the Chirp model optimized for Japanese.
+Google Cloud's Speech-to-Text V2 API optimized for Japanese.
 """
 
 import logging
@@ -10,7 +10,8 @@ import time
 from typing import Optional, List, Tuple
 from datetime import datetime
 
-from google.cloud import speech_v1
+from google.cloud.speech_v2 import SpeechClient
+from google.cloud.speech_v2.types import cloud_speech
 from google.api_core import exceptions as google_exceptions
 from google.api_core import retry
 
@@ -68,76 +69,87 @@ class SpeechToTextService:
         "latest_short": 0.009,
     }
     
-    def __init__(self, credentials_path: Optional[str] = None):
+    def __init__(self, credentials_path: Optional[str] = None, project_id: Optional[str] = None):
         """
-        Initialize Speech-to-Text service.
+        Initialize Speech-to-Text V2 service.
         
         Args:
             credentials_path: Path to service account JSON key file.
                              If None, uses default credentials from environment.
+            project_id: Google Cloud project ID (required for V2 API)
         """
         if credentials_path:
-            self.client = speech_v1.SpeechClient.from_service_account_file(
-                credentials_path
-            )
+            self.client = SpeechClient.from_service_account_file(credentials_path)
         else:
-            self.client = speech_v1.SpeechClient()
+            self.client = SpeechClient()
         
-        logger.info("SpeechToTextService initialized")
+        self.project_id = project_id
+        logger.info("SpeechToTextService V2 initialized")
     
     def build_recognition_config(
         self,
         options: TranscriptionOptions
-    ) -> speech_v1.RecognitionConfig:
+    ) -> cloud_speech.RecognitionConfig:
         """
-        Build recognition configuration for Google Cloud API.
+        Build recognition configuration for Google Cloud Speech V2 API.
         
         Args:
             options: Transcription options
             
         Returns:
-            RecognitionConfig object
+            RecognitionConfig object for V2 API
         """
-        config_params = {
-            "language_code": options.language_code,
-            "model": options.model,
-            "enable_automatic_punctuation": options.enable_automatic_punctuation,
-            "enable_word_time_offsets": options.enable_word_timestamps,
-            "max_alternatives": options.max_alternatives,
-            "profanity_filter": options.profanity_filter,
-        }
-        
-        # Add audio encoding if specified
+        # V2 API uses explicit decoding config for audio format
+        explicit_decoding_config = None
         if options.audio_encoding:
             encoding_map = {
-                "LINEAR16": speech_v1.RecognitionConfig.AudioEncoding.LINEAR16,
-                "FLAC": speech_v1.RecognitionConfig.AudioEncoding.FLAC,
-                "MP3": speech_v1.RecognitionConfig.AudioEncoding.MP3,
-                "OGG_OPUS": speech_v1.RecognitionConfig.AudioEncoding.OGG_OPUS,
+                "LINEAR16": cloud_speech.ExplicitDecodingConfig.AudioEncoding.LINEAR16,
+                "FLAC": cloud_speech.ExplicitDecodingConfig.AudioEncoding.FLAC,
+                "MP3": cloud_speech.ExplicitDecodingConfig.AudioEncoding.MP3,
+                "OGG_OPUS": cloud_speech.ExplicitDecodingConfig.AudioEncoding.OGG_OPUS,
             }
-            config_params["encoding"] = encoding_map.get(
+            encoding = encoding_map.get(
                 options.audio_encoding.upper(),
-                speech_v1.RecognitionConfig.AudioEncoding.ENCODING_UNSPECIFIED
+                cloud_speech.ExplicitDecodingConfig.AudioEncoding.MP3
+            )
+            
+            explicit_decoding_config = cloud_speech.ExplicitDecodingConfig(
+                encoding=encoding,
+                sample_rate_hertz=options.sample_rate_hertz or 16000,
+                audio_channel_count=1,  # Mono
             )
         
-        # Add sample rate if specified
-        if options.sample_rate_hertz:
-            config_params["sample_rate_hertz"] = options.sample_rate_hertz
+        # V2 API uses RecognitionFeatures for all feature flags
+        features = cloud_speech.RecognitionFeatures(
+            enable_automatic_punctuation=options.enable_automatic_punctuation,
+            enable_word_time_offsets=options.enable_word_timestamps,
+            max_alternatives=options.max_alternatives,
+            profanity_filter=options.profanity_filter,
+        )
         
-        # Add speaker diarization if enabled
+        # Speaker diarization config (if enabled)
         if options.enable_speaker_diarization:
-            config_params["diarization_config"] = speech_v1.SpeakerDiarizationConfig(
-                enable_speaker_diarization=True,
+            features.diarization_config = cloud_speech.SpeakerDiarizationConfig(
                 min_speaker_count=1,
-                max_speaker_count=6,  # Reasonable for most presentations
+                max_speaker_count=6,
             )
         
-        config = speech_v1.RecognitionConfig(**config_params)
+        # Build main config
+        config = cloud_speech.RecognitionConfig(
+            features=features,
+            model=options.model or "latest_long",
+            language_codes=[options.language_code],  # V2 uses list of language codes
+        )
+        
+        # Add explicit decoding config if specified
+        if explicit_decoding_config:
+            config.explicit_decoding_config = explicit_decoding_config
         
         logger.info(
-            f"Built recognition config: model={options.model}, "
+            f"Built V2 recognition config: model={options.model}, "
             f"language={options.language_code}, "
-            f"diarization={options.enable_speaker_diarization}"
+            f"encoding={options.audio_encoding}, "
+            f"sample_rate={options.sample_rate_hertz}"
         )
         
         return config
@@ -149,10 +161,9 @@ class SpeechToTextService:
         options: Optional[TranscriptionOptions] = None
     ) -> TranscriptionResult:
         """
-        Transcribe audio file from Google Cloud Storage.
+        Transcribe audio file from Google Cloud Storage using V2 API.
         
-        This method performs long-running recognition, polls for completion,
-        and parses the results into a structured format.
+        This method performs batch recognition and polls for completion.
         
         Args:
             gcs_uri: GCS URI of audio file (gs://bucket/path/to/file)
@@ -174,24 +185,45 @@ class SpeechToTextService:
             options = TranscriptionOptions()
         
         logger.info(
-            f"Starting transcription for presentation {presentation_id}: {gcs_uri}"
+            f"Starting V2 transcription for presentation {presentation_id}: {gcs_uri}"
         )
         
         try:
             # Build configuration
             config = self.build_recognition_config(options)
             
-            # Create audio object
-            audio = speech_v1.RecognitionAudio(uri=gcs_uri)
+            # Build recognizer name (V2 API requirement)
+            if not self.project_id:
+                raise TranscriptionError("project_id is required for V2 API")
             
-            # Submit long-running recognition request
-            operation = self.client.long_running_recognize(
+            recognizer = f"projects/{self.project_id}/locations/global/recognizers/_"
+            
+            # Build request
+            request = cloud_speech.BatchRecognizeRequest(
+                recognizer=recognizer,
                 config=config,
-                audio=audio
+                files=[cloud_speech.BatchRecognizeFileMetadata(uri=gcs_uri)],
+                recognition_output_config=cloud_speech.RecognitionOutputConfig(
+                    inline_response_config=cloud_speech.InlineOutputConfig()
+                ),
             )
             
+            # Submit batch recognition request
+            try:
+                operation = self.client.batch_recognize(request=request)
+            except google_exceptions.InvalidArgument as e:
+                # If model fails, retry with default
+                if "model" in str(e).lower() and options.model:
+                    logger.warning(f"Model '{options.model}' failed: {e}. Retrying with default model...")
+                    options.model = "latest_long"
+                    config = self.build_recognition_config(options)
+                    request.config = config
+                    operation = self.client.batch_recognize(request=request)
+                else:
+                    raise
+            
             operation_id = operation.operation.name
-            logger.info(f"Submitted operation {operation_id}")
+            logger.info(f"Submitted V2 operation {operation_id}")
             
             # Poll for completion
             result = self._poll_operation(operation, operation_id)
@@ -216,7 +248,7 @@ class SpeechToTextService:
             )
             
             logger.info(
-                f"Transcription completed for {presentation_id}: "
+                f"V2 Transcription completed for {presentation_id}: "
                 f"{transcription_result.word_count} words, "
                 f"confidence={transcription_result.confidence:.2f}, "
                 f"duration={transcription_result.duration_seconds:.1f}s, "
@@ -246,16 +278,16 @@ class SpeechToTextService:
         self,
         operation,
         operation_id: str
-    ) -> speech_v1.LongRunningRecognizeResponse:
+    ) -> cloud_speech.BatchRecognizeResponse:
         """
         Poll operation until completion.
         
         Args:
-            operation: LongRunningRecognizeOperation object
+            operation: BatchRecognizeOperation object
             operation_id: Operation ID for logging
             
         Returns:
-            LongRunningRecognizeResponse
+            BatchRecognizeResponse
             
         Raises:
             TranscriptionError: If polling times out or operation fails
@@ -302,17 +334,17 @@ class SpeechToTextService:
     
     def _parse_results(
         self,
-        response: speech_v1.LongRunningRecognizeResponse,
+        response: cloud_speech.BatchRecognizeResponse,
         presentation_id: str,
         gcs_uri: str,
         operation_id: str,
         options: TranscriptionOptions
     ) -> TranscriptionResult:
         """
-        Parse Google Cloud API response into TranscriptionResult.
+        Parse Google Cloud V2 API response into TranscriptionResult.
         
         Args:
-            response: API response
+            response: V2 API response
             presentation_id: Presentation ID
             gcs_uri: GCS URI of audio file
             operation_id: Operation ID
@@ -321,9 +353,60 @@ class SpeechToTextService:
         Returns:
             TranscriptionResult
         """
-        # Check if results exist
+        # V2 response structure: response.results is a dict with GCS URI as key
         if not response.results:
             logger.warning("No transcription results returned")
+            return TranscriptionResult(
+                presentation_id=presentation_id,
+                transcript="",
+                language=options.language_code,
+                confidence=0.0,
+                duration_seconds=0.0,
+                word_count=0,
+                gcs_uri=gcs_uri,
+                operation_id=operation_id,
+                model=options.model,
+                quality_flags=["empty_results"],
+            )
+        
+        # Get file-specific results - results is a dict keyed by GCS URI
+        file_result = response.results.get(gcs_uri)
+        
+        if not file_result:
+            logger.warning(f"No results found for URI: {gcs_uri}")
+            logger.warning(f"Available URIs: {list(response.results.keys())}")
+            return TranscriptionResult(
+                presentation_id=presentation_id,
+                transcript="",
+                language=options.language_code,
+                confidence=0.0,
+                duration_seconds=0.0,
+                word_count=0,
+                gcs_uri=gcs_uri,
+                operation_id=operation_id,
+                model=options.model,
+                quality_flags=["empty_results"],
+            )
+        
+        # Check for transcript in results
+        if not hasattr(file_result, 'transcript') or not file_result.transcript:
+            logger.warning("No transcript in file result")
+            return TranscriptionResult(
+                presentation_id=presentation_id,
+                transcript="",
+                language=options.language_code,
+                confidence=0.0,
+                duration_seconds=0.0,
+                word_count=0,
+                gcs_uri=gcs_uri,
+                operation_id=operation_id,
+                model=options.model,
+                quality_flags=["empty_results"],
+            )
+        
+        # Check for results in transcript
+        if not hasattr(file_result.transcript, 'results') or not file_result.transcript.results:
+            logger.warning("No results in transcript")
             return TranscriptionResult(
                 presentation_id=presentation_id,
                 transcript="",
@@ -342,8 +425,11 @@ class SpeechToTextService:
         all_words = []
         confidences = []
         
-        for result in response.results:
+        for result in file_result.transcript.results:
             # Get the best alternative (highest confidence)
+            if not result.alternatives:
+                continue
+                
             alternative = result.alternatives[0]
             
             # Add transcript part
@@ -356,8 +442,8 @@ class SpeechToTextService:
                 for word_info in alternative.words:
                     word = WordInfo(
                         word=word_info.word,
-                        start_time=self._to_seconds(word_info.start_time),
-                        end_time=self._to_seconds(word_info.end_time),
+                        start_time=self._to_seconds(word_info.start_offset),
+                        end_time=self._to_seconds(word_info.end_offset),
                         confidence=word_info.confidence if hasattr(word_info, 'confidence') else alternative.confidence,
                     )
                     all_words.append(word)
@@ -407,15 +493,23 @@ class SpeechToTextService:
     
     def _to_seconds(self, duration) -> float:
         """
-        Convert Google's Duration to seconds.
+        Convert Google's Duration or timedelta to seconds.
         
         Args:
-            duration: google.protobuf.duration_pb2.Duration
+            duration: google.protobuf.duration_pb2.Duration or datetime.timedelta
             
         Returns:
             Seconds as float
         """
-        return duration.seconds + duration.nanos / 1e9
+        # Handle datetime.timedelta
+        if hasattr(duration, 'total_seconds'):
+            return duration.total_seconds()
+        # Handle protobuf Duration
+        elif hasattr(duration, 'nanos'):
+            return duration.seconds + duration.nanos / 1e9
+        # Fallback
+        else:
+            return float(duration)
     
     def _estimate_cost(self, duration_seconds: float, model: str) -> float:
         """
