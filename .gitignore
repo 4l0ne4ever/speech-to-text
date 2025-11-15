@@ -9,3 +9,4 @@ transcript_*.txt
 downloads/
 speech-processing-prod-9ffbefa55e2c.json
 docs/
+.pytest_cache/

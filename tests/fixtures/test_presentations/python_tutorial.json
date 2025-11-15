@@ -1,0 +1,429 @@
+{
+  "presentation_id": "python_tutorial_001",
+  "title": "Python基礎講座",
+  "slides": [
+    {
+      "page": 1,
+      "title": "Python基礎講座",
+      "content": "プログラミング入門\n\n講師：田中太郎\nソフトウェアエンジニア\n\n学習内容：\n• 変数とデータ型\n• 制御構造\n• 関数の定義\n• クラスとオブジェクト指向\n• 実践的な演習"
+    },
+    {
+      "page": 2,
+      "title": "変数とデータ型",
+      "content": "Pythonの基本的なデータ型\n\n数値型：\nage = 25          # 整数（int）\nprice = 99.99     # 浮動小数点数（float）\n\n文字列型：\nname = \"太郎\"     # 文字列（str）\nmessage = '挨拶'  # シングルクォートも可\n\nブール型：\nis_active = True  # 真偽値（bool）\nhas_error = False\n\nリスト型：\nnumbers = [1, 2, 3, 4, 5]\nfruits = [\"りんご\", \"バナナ\", \"オレンジ\"]\n\n型変換：\nstr(25) → \"25\"\nint(\"100\") → 100"
+    },
+    {
+      "page": 3,
+      "title": "制御構造：条件分岐",
+      "content": "if文による条件分岐\n\n基本的なif文：\nif score >= 80:\n    print(\"合格です\")\nelse:\n    print(\"不合格です\")\n\nelif文の使用：\nif temperature > 30:\n    print(\"暑い\")\nelif temperature > 20:\n    print(\"快適\")\nelse:\n    print(\"寒い\")\n\n複数条件：\nif age >= 18 and has_license:\n    print(\"運転可能\")\n\nif is_weekend or is_holiday:\n    print(\"休日です\")"
+    },
+    {
+      "page": 4,
+      "title": "制御構造：繰り返し処理",
+      "content": "forループとwhileループ\n\nforループ（リスト）：\nfor fruit in fruits:\n    print(fruit)\n\nforループ（範囲）：\nfor i in range(5):\n    print(i)  # 0, 1, 2, 3, 4\n\nfor i in range(1, 10, 2):\n    print(i)  # 1, 3, 5, 7, 9\n\nwhileループ：\ncount = 0\nwhile count < 5:\n    print(count)\n    count += 1\n\nbreak文：\nfor i in range(10):\n    if i == 5:\n        break  # ループを抜ける\n\ncontinue文：\nfor i in range(5):\n    if i == 2:\n        continue  # スキップ\n    print(i)"
+    },
+    {
+      "page": 5,
+      "title": "関数の定義と呼び出し",
+      "content": "関数で処理をまとめる\n\n基本的な関数：\ndef greet(name):\n    return f\"こんにちは、{name}さん\"\n\nresult = greet(\"太郎\")\nprint(result)  # こんにちは、太郎さん\n\nデフォルト引数：\ndef calculate_tax(price, rate=0.1):\n    return price * (1 + rate)\n\ntotal = calculate_tax(1000)  # 1100.0\ntotal = calculate_tax(1000, 0.08)  # 1080.0\n\n複数の戻り値：\ndef get_stats(numbers):\n    return min(numbers), max(numbers), sum(numbers)\n\nmin_val, max_val, total = get_stats([1, 2, 3, 4, 5])\n\n可変長引数：\ndef sum_all(*args):\n    return sum(args)\n\nresult = sum_all(1, 2, 3, 4)  # 10"
+    },
+    {
+      "page": 6,
+      "title": "リストの操作",
+      "content": "リストの便利なメソッド\n\n要素の追加：\nfruits = [\"りんご\", \"バナナ\"]\nfruits.append(\"オレンジ\")  # 末尾に追加\nfruits.insert(1, \"ぶどう\")  # 指定位置に追加\n\n要素の削除：\nfruits.remove(\"バナナ\")  # 値で削除\npopped = fruits.pop()  # 末尾を削除して返す\npopped = fruits.pop(0)  # 指定位置を削除\n\nリストの結合：\nlist1 = [1, 2, 3]\nlist2 = [4, 5, 6]\ncombined = list1 + list2  # [1, 2, 3, 4, 5, 6]\n\nスライシング：\nnumbers = [0, 1, 2, 3, 4, 5]\nprint(numbers[1:4])  # [1, 2, 3]\nprint(numbers[:3])   # [0, 1, 2]\nprint(numbers[3:])   # [3, 4, 5]\n\nリスト内包表記：\nsquares = [x**2 for x in range(5)]\n# [0, 1, 4, 9, 16]"
+    },
+    {
+      "page": 7,
+      "title": "辞書の操作",
+      "content": "辞書（dict）でキーと値を管理\n\n辞書の作成：\nuser = {\n    \"name\": \"太郎\",\n    \"age\": 25,\n    \"email\": \"taro@example.com\"\n}\n\n値の取得：\nname = user[\"name\"]  # 太郎\nage = user.get(\"age\")  # 25\nphone = user.get(\"phone\", \"未登録\")  # デフォルト値\n\n値の追加・更新：\nuser[\"phone\"] = \"090-1234-5678\"\nuser[\"age\"] = 26\n\nキーの存在確認：\nif \"email\" in user:\n    print(\"メールアドレスあり\")\n\n辞書のループ：\nfor key, value in user.items():\n    print(f\"{key}: {value}\")\n\nfor key in user.keys():\n    print(key)\n\nfor value in user.values():\n    print(value)"
+    },
+    {
+      "page": 8,
+      "title": "クラスとオブジェクト指向",
+      "content": "クラスでオブジェクトを設計\n\nクラスの定義：\nclass Person:\n    def __init__(self, name, age):\n        self.name = name\n        self.age = age\n    \n    def greet(self):\n        return f\"こんにちは、{self.name}です\"\n    \n    def celebrate_birthday(self):\n        self.age += 1\n        return f\"{self.age}歳になりました\"\n\nインスタンスの作成：\nperson1 = Person(\"太郎\", 25)\nprint(person1.greet())  # こんにちは、太郎です\n\nメソッドの呼び出し：\nmessage = person1.celebrate_birthday()\nprint(message)  # 26歳になりました\n\n継承：\nclass Student(Person):\n    def __init__(self, name, age, student_id):\n        super().__init__(name, age)\n        self.student_id = student_id"
+    },
+    {
+      "page": 9,
+      "title": "実践演習とまとめ",
+      "content": "学んだことを活用しよう\n\n演習1：成績管理プログラム\n• 学生のリストを作成\n• 平均点を計算する関数\n• 合格・不合格を判定\n\n演習2：買い物リスト\n• 商品名と価格を辞書で管理\n• 合計金額を計算\n• 消費税を加算\n\n演習3：クラス設計\n• Bookクラスを作成\n• title, author, priceの属性\n• discountメソッド\n\n学習のポイント：\n• コードを書いて試す\n• エラーメッセージを読む\n• 公式ドキュメントを活用\n• 小さく分割して考える\n\n次のステップ：\n• モジュールとパッケージ\n• ファイル入出力\n• 例外処理\n• 外部ライブラリの活用"
+    }
+  ],
+  "transcript_segments": [
+    {
+      "segment_id": "seg_001",
+      "text": "皆さん、こんにちは。Python基礎講座を始めます。",
+      "start_time": 0.0,
+      "end_time": 4.0,
+      "expected_slide": 1,
+      "keywords": ["Python", "基礎講座"]
+    },
+    {
+      "segment_id": "seg_002",
+      "text": "私はソフトウェアエンジニアの田中太郎です。",
+      "start_time": 4.0,
+      "end_time": 7.5,
+      "expected_slide": 1,
+      "keywords": ["ソフトウェアエンジニア", "田中太郎"]
+    },
+    {
+      "segment_id": "seg_003",
+      "text": "今日は変数、制御構造、関数、クラスについて学びます。",
+      "start_time": 7.5,
+      "end_time": 12.5,
+      "expected_slide": 1,
+      "keywords": ["変数", "制御構造", "関数", "クラス"]
+    },
+    {
+      "segment_id": "seg_004",
+      "text": "まず、変数とデータ型について説明します。",
+      "start_time": 12.5,
+      "end_time": 16.0,
+      "expected_slide": 2,
+      "keywords": ["変数", "データ型"]
+    },
+    {
+      "segment_id": "seg_005",
+      "text": "Pythonには整数型のintと浮動小数点数型のfloatがあります。",
+      "start_time": 16.0,
+      "end_time": 21.5,
+      "expected_slide": 2,
+      "keywords": ["整数型", "int", "浮動小数点数", "float"]
+    },
+    {
+      "segment_id": "seg_006",
+      "text": "例えば、age イコール 25 のように書きます。これは整数です。",
+      "start_time": 21.5,
+      "end_time": 27.0,
+      "expected_slide": 2,
+      "keywords": ["age", "25", "整数"]
+    },
+    {
+      "segment_id": "seg_007",
+      "text": "文字列は、name イコール 「太郎」のようにダブルクォートで囲みます。",
+      "start_time": 27.0,
+      "end_time": 32.5,
+      "expected_slide": 2,
+      "keywords": ["文字列", "name", "太郎", "ダブルクォート"]
+    },
+    {
+      "segment_id": "seg_008",
+      "text": "リスト型は角括弧を使って、複数の値をまとめて扱えます。",
+      "start_time": 32.5,
+      "end_time": 37.5,
+      "expected_slide": 2,
+      "keywords": ["リスト型", "角括弧", "複数", "値"]
+    },
+    {
+      "segment_id": "seg_009",
+      "text": "次に、制御構造の条件分岐について見ていきましょう。",
+      "start_time": 37.5,
+      "end_time": 41.5,
+      "expected_slide": 3,
+      "keywords": ["制御構造", "条件分岐"]
+    },
+    {
+      "segment_id": "seg_010",
+      "text": "if文を使うと、条件によって処理を分岐できます。",
+      "start_time": 41.5,
+      "end_time": 46.0,
+      "expected_slide": 3,
+      "keywords": ["if文", "条件", "分岐"]
+    },
+    {
+      "segment_id": "seg_011",
+      "text": "例えば、if score が 80 以上なら、合格です、とプリントします。",
+      "start_time": 46.0,
+      "end_time": 52.0,
+      "expected_slide": 3,
+      "keywords": ["if", "score", "80", "合格", "print"]
+    },
+    {
+      "segment_id": "seg_012",
+      "text": "elif文を使えば、複数の条件を順番にチェックできます。",
+      "start_time": 52.0,
+      "end_time": 57.0,
+      "expected_slide": 3,
+      "keywords": ["elif", "複数", "条件", "チェック"]
+    },
+    {
+      "segment_id": "seg_013",
+      "text": "andやorを使って、複数の条件を組み合わせることもできます。",
+      "start_time": 57.0,
+      "end_time": 62.0,
+      "expected_slide": 3,
+      "keywords": ["and", "or", "複数", "条件", "組み合わせ"]
+    },
+    {
+      "segment_id": "seg_014",
+      "text": "繰り返し処理について説明します。",
+      "start_time": 62.0,
+      "end_time": 65.0,
+      "expected_slide": 4,
+      "keywords": ["繰り返し処理"]
+    },
+    {
+      "segment_id": "seg_015",
+      "text": "forループは、リストの各要素に対して処理を実行します。",
+      "start_time": 65.0,
+      "end_time": 70.0,
+      "expected_slide": 4,
+      "keywords": ["for", "ループ", "リスト", "要素", "処理"]
+    },
+    {
+      "segment_id": "seg_016",
+      "text": "for i in range 5 とすると、0から4まで繰り返します。",
+      "start_time": 70.0,
+      "end_time": 76.0,
+      "expected_slide": 4,
+      "keywords": ["for", "i", "range", "5", "繰り返し"]
+    },
+    {
+      "segment_id": "seg_017",
+      "text": "whileループは、条件が真の間、処理を繰り返します。",
+      "start_time": 76.0,
+      "end_time": 81.0,
+      "expected_slide": 4,
+      "keywords": ["while", "ループ", "条件", "真", "繰り返し"]
+    },
+    {
+      "segment_id": "seg_018",
+      "text": "break文でループを途中で抜けたり、continue文でスキップしたりできます。",
+      "start_time": 81.0,
+      "end_time": 87.0,
+      "expected_slide": 4,
+      "keywords": ["break", "ループ", "抜ける", "continue", "スキップ"]
+    },
+    {
+      "segment_id": "seg_019",
+      "text": "関数の定義と呼び出しについて学びましょう。",
+      "start_time": 87.0,
+      "end_time": 90.5,
+      "expected_slide": 5,
+      "keywords": ["関数", "定義", "呼び出し"]
+    },
+    {
+      "segment_id": "seg_020",
+      "text": "def greet と書いて、関数を定義します。",
+      "start_time": 90.5,
+      "end_time": 94.5,
+      "expected_slide": 5,
+      "keywords": ["def", "greet", "関数", "定義"]
+    },
+    {
+      "segment_id": "seg_021",
+      "text": "return文で値を返すことができます。こんにちは、太郎さん、という文字列を返します。",
+      "start_time": 94.5,
+      "end_time": 101.0,
+      "expected_slide": 5,
+      "keywords": ["return", "値", "こんにちは", "太郎", "文字列"]
+    },
+    {
+      "segment_id": "seg_022",
+      "text": "デフォルト引数を使うと、引数を省略できます。",
+      "start_time": 101.0,
+      "end_time": 105.0,
+      "expected_slide": 5,
+      "keywords": ["デフォルト引数", "引数", "省略"]
+    },
+    {
+      "segment_id": "seg_023",
+      "text": "複数の値を返したいときは、カンマで区切って返せます。",
+      "start_time": 105.0,
+      "end_time": 109.5,
+      "expected_slide": 5,
+      "keywords": ["複数", "値", "返す", "カンマ"]
+    },
+    {
+      "segment_id": "seg_024",
+      "text": "リストの操作について見ていきます。",
+      "start_time": 109.5,
+      "end_time": 112.5,
+      "expected_slide": 6,
+      "keywords": ["リスト", "操作"]
+    },
+    {
+      "segment_id": "seg_025",
+      "text": "appendメソッドで末尾に要素を追加できます。",
+      "start_time": 112.5,
+      "end_time": 116.5,
+      "expected_slide": 6,
+      "keywords": ["append", "メソッド", "末尾", "要素", "追加"]
+    },
+    {
+      "segment_id": "seg_026",
+      "text": "insertメソッドで指定した位置に要素を挿入できます。",
+      "start_time": 116.5,
+      "end_time": 121.0,
+      "expected_slide": 6,
+      "keywords": ["insert", "メソッド", "位置", "挿入"]
+    },
+    {
+      "segment_id": "seg_027",
+      "text": "removeメソッドで値を指定して削除、popメソッドで位置を指定して削除します。",
+      "start_time": 121.0,
+      "end_time": 127.5,
+      "expected_slide": 6,
+      "keywords": ["remove", "値", "削除", "pop", "位置"]
+    },
+    {
+      "segment_id": "seg_028",
+      "text": "スライシングで部分的なリストを取り出せます。",
+      "start_time": 127.5,
+      "end_time": 131.5,
+      "expected_slide": 6,
+      "keywords": ["スライシング", "部分", "リスト", "取り出す"]
+    },
+    {
+      "segment_id": "seg_029",
+      "text": "リスト内包表記を使うと、簡潔にリストを作成できます。",
+      "start_time": 131.5,
+      "end_time": 136.0,
+      "expected_slide": 6,
+      "keywords": ["リスト内包表記", "簡潔", "作成"]
+    },
+    {
+      "segment_id": "seg_030",
+      "text": "辞書について説明します。辞書はキーと値のペアを保存します。",
+      "start_time": 136.0,
+      "end_time": 141.5,
+      "expected_slide": 7,
+      "keywords": ["辞書", "キー", "値", "ペア", "保存"]
+    },
+    {
+      "segment_id": "seg_031",
+      "text": "中括弧を使って辞書を作成し、キーに対応する値を格納します。",
+      "start_time": 141.5,
+      "end_time": 147.0,
+      "expected_slide": 7,
+      "keywords": ["中括弧", "辞書", "作成", "キー", "値", "格納"]
+    },
+    {
+      "segment_id": "seg_032",
+      "text": "角括弧でキーを指定して値を取得します。user の name で太郎を取得できます。",
+      "start_time": 147.0,
+      "end_time": 153.5,
+      "expected_slide": 7,
+      "keywords": ["角括弧", "キー", "値", "取得", "user", "name"]
+    },
+    {
+      "segment_id": "seg_033",
+      "text": "getメソッドを使うと、キーが存在しない場合のデフォルト値を指定できます。",
+      "start_time": 153.5,
+      "end_time": 159.5,
+      "expected_slide": 7,
+      "keywords": ["get", "メソッド", "キー", "存在", "デフォルト値"]
+    },
+    {
+      "segment_id": "seg_034",
+      "text": "items、keys、valuesメソッドで、辞書の内容をループできます。",
+      "start_time": 159.5,
+      "end_time": 165.0,
+      "expected_slide": 7,
+      "keywords": ["items", "keys", "values", "辞書", "ループ"]
+    },
+    {
+      "segment_id": "seg_035",
+      "text": "クラスとオブジェクト指向について学びましょう。",
+      "start_time": 165.0,
+      "end_time": 168.5,
+      "expected_slide": 8,
+      "keywords": ["クラス", "オブジェクト指向"]
+    },
+    {
+      "segment_id": "seg_036",
+      "text": "classキーワードでクラスを定義します。Personクラスを作りましょう。",
+      "start_time": 168.5,
+      "end_time": 174.0,
+      "expected_slide": 8,
+      "keywords": ["class", "キーワード", "クラス", "定義", "Person"]
+    },
+    {
+      "segment_id": "seg_037",
+      "text": "init メソッドは、インスタンスが作られるときに呼ばれます。",
+      "start_time": 174.0,
+      "end_time": 179.0,
+      "expected_slide": 8,
+      "keywords": ["init", "メソッド", "インスタンス", "作られる"]
+    },
+    {
+      "segment_id": "seg_038",
+      "text": "selfは自分自身を指します。self.nameでインスタンス変数にアクセスします。",
+      "start_time": 179.0,
+      "end_time": 185.0,
+      "expected_slide": 8,
+      "keywords": ["self", "自分自身", "インスタンス変数", "アクセス"]
+    },
+    {
+      "segment_id": "seg_039",
+      "text": "greetメソッドを呼び出すと、こんにちは、太郎です、と返します。",
+      "start_time": 185.0,
+      "end_time": 190.5,
+      "expected_slide": 8,
+      "keywords": ["greet", "メソッド", "呼び出し", "こんにちは", "太郎"]
+    },
+    {
+      "segment_id": "seg_040",
+      "text": "継承を使うと、親クラスの機能を引き継げます。",
+      "start_time": 190.5,
+      "end_time": 195.0,
+      "expected_slide": 8,
+      "keywords": ["継承", "親クラス", "機能", "引き継ぐ"]
+    },
+    {
+      "segment_id": "seg_041",
+      "text": "最後に、実践演習とまとめです。",
+      "start_time": 195.0,
+      "end_time": 198.0,
+      "expected_slide": 9,
+      "keywords": ["実践演習", "まとめ"]
+    },
+    {
+      "segment_id": "seg_042",
+      "text": "演習1では、学生のリストを作って平均点を計算する関数を作りましょう。",
+      "start_time": 198.0,
+      "end_time": 204.5,
+      "expected_slide": 9,
+      "keywords": ["演習1", "学生", "リスト", "平均点", "計算", "関数"]
+    },
+    {
+      "segment_id": "seg_043",
+      "text": "演習2では、買い物リストを辞書で管理して、合計金額を計算します。",
+      "start_time": 204.5,
+      "end_time": 210.5,
+      "expected_slide": 9,
+      "keywords": ["演習2", "買い物リスト", "辞書", "管理", "合計金額"]
+    },
+    {
+      "segment_id": "seg_044",
+      "text": "演習3では、Bookクラスを設計して、割引メソッドを実装しましょう。",
+      "start_time": 210.5,
+      "end_time": 216.0,
+      "expected_slide": 9,
+      "keywords": ["演習3", "Book", "クラス", "設計", "割引", "メソッド"]
+    },
+    {
+      "segment_id": "seg_045",
+      "text": "学習のポイントは、コードを書いて試すことです。エラーを恐れずに実験しましょう。",
+      "start_time": 216.0,
+      "end_time": 222.5,
+      "expected_slide": 9,
+      "keywords": ["学習", "ポイント", "コード", "書く", "試す", "エラー"]
+    },
+    {
+      "segment_id": "seg_046",
+      "text": "次のステップでは、モジュールやファイル入出力、例外処理を学びます。",
+      "start_time": 222.5,
+      "end_time": 228.5,
+      "expected_slide": 9,
+      "keywords": ["次のステップ", "モジュール", "ファイル入出力", "例外処理"]
+    },
+    {
+      "segment_id": "seg_047",
+      "text": "以上でPython基礎講座を終わります。お疲れ様でした。",
+      "start_time": 228.5,
+      "end_time": 233.0,
+      "expected_slide": 9,
+      "keywords": ["Python", "基礎講座", "終わり", "お疲れ様"]
+    }
+  ]
+}

@@ -9,3 +9,15 @@ grpcio-status>=1.60.0
 
 # Audio preprocessing
 numpy>=1.24.0
+
+# Phase 4: PDF Processing and Slide Matching
+PyMuPDF>=1.26.0
+pdfplumber>=0.11.0
+mecab-python3>=1.0.10
+unidic-lite>=1.0.8
+
+# Phase 4: Semantic Embeddings and Matching
+sentence-transformers>=5.0.0
+faiss-cpu>=1.12.0
+python-Levenshtein>=0.27.0
+scikit-learn>=1.7.0

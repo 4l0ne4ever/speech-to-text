@@ -1,0 +1,402 @@
+{
+  "presentation_id": "ml_intro_001",
+  "title": "機械学習入門",
+  "slides": [
+    {
+      "page": 1,
+      "title": "機械学習入門",
+      "content": "本日のテーマ：機械学習の基礎知識\n\n• データサイエンスの重要な分野\n• ビジネスと研究での活用\n• AI技術の中核をなす手法\n• 実践的なアプローチを学ぶ\n\n講師：山田太郎\n東京大学 情報工学研究所\n\n本講義の目標：\n機械学習の概念を理解し、\n基本的な手法を習得する"
+    },
+    {
+      "page": 2,
+      "title": "機械学習の定義",
+      "content": "コンピュータが明示的にプログラムされることなく\nデータから学習する能力\n\n特徴：\n• 経験から自動的に改善\n• パターン認識による予測\n• 統計的手法の応用\n• 大量データの活用\n\n主な分類：\n• 教師あり学習\n• 教師なし学習\n• 強化学習"
+    },
+    {
+      "page": 3,
+      "title": "教師あり学習（Supervised Learning）",
+      "content": "入力と正解ラベルのペアから学習\n\n分類タスク（Classification）：\n• カテゴリを予測\n• スパムメール検出\n• 画像認識\n\n回帰タスク（Regression）：\n• 連続値を予測\n• 売上予測\n• 価格推定\n\n必要なもの：\n• ラベル付き訓練データ\n• 特徴量エンジニアリング\n\nアルゴリズム例：\n決定木、ランダムフォレスト\nロジスティック回帰、SVM"
+    },
+    {
+      "page": 4,
+      "title": "教師なし学習（Unsupervised Learning）",
+      "content": "ラベルなしデータから構造を発見\n\nクラスタリング：\n• 類似データをグループ化\n• 顧客セグメンテーション\n• 異常検知\n\n次元削減：\n• データ圧縮\n• 可視化\n• ノイズ除去\n\nアルゴリズム例：\n• K-means法\n• 主成分分析（PCA）\n• t-SNE\n• DBSCAN"
+    },
+    {
+      "page": 5,
+      "title": "ニューラルネットワークの構造",
+      "content": "生物の神経系を模倣した計算モデル\n\n基本構成要素：\n• 入力層（Input Layer）\n• 隠れ層（Hidden Layers）\n• 出力層（Output Layer）\n• 重み（Weights）\n• バイアス（Bias）\n\n学習メカニズム：\n• 順伝播（Forward Propagation）\n• 誤差計算（Loss Calculation）\n• 逆伝播（Backpropagation）\n• 勾配降下法（Gradient Descent）\n\n活性化関数：\nReLU、Sigmoid、Tanh"
+    },
+    {
+      "page": 6,
+      "title": "深層学習（Deep Learning）",
+      "content": "多層ニューラルネットワークの応用\n\nCNN（畳み込みニューラルネットワーク）：\n• 画像処理に特化\n• 畳み込み層とプーリング層\n• 画像分類、物体検出\n\nRNN（再帰型ニューラルネットワーク）：\n• 時系列データ処理\n• LSTM、GRU\n• 自然言語処理、音声認識\n\nTransformer：\n• Attention機構\n• BERT、GPT\n• 最新の言語モデル"
+    },
+    {
+      "page": 7,
+      "title": "実世界での応用例",
+      "content": "ビジネスと研究での活用事例\n\nコンピュータビジョン：\n• 顔認識システム\n• 自動運転車の物体検出\n• 医療画像診断\n\n自然言語処理：\n• 機械翻訳\n• チャットボット\n• 感情分析\n\n推薦システム：\n• Netflix、Amazon\n• 協調フィルタリング\n• コンテンツベース推薦\n\n金融：\n• 株価予測\n• 信用リスク評価\n• 不正検知"
+    },
+    {
+      "page": 8,
+      "title": "モデル構築のワークフロー",
+      "content": "体系的なアプローチ\n\nステップ1：問題定義\n• ビジネス目標の明確化\n• 成功指標の設定\n\nステップ2：データ準備\n• 収集と統合\n• クリーニング\n• 特徴量エンジニアリング\n\nステップ3：モデル選択\n• アルゴリズムの比較\n• ハイパーパラメータ調整\n\nステップ4：訓練と検証\n• 交差検証\n• テストデータで評価\n\nステップ5：デプロイと監視\n• 本番環境へ展開\n• 継続的な改善"
+    },
+    {
+      "page": 9,
+      "title": "モデル評価指標",
+      "content": "性能を測定する重要な指標\n\n分類問題：\n• 正解率（Accuracy）\n• 適合率（Precision）\n• 再現率（Recall）\n• F1スコア\n• 混同行列（Confusion Matrix）\n• ROC曲線、AUC\n\n回帰問題：\n• 平均二乗誤差（MSE）\n• 平均絶対誤差（MAE）\n• 決定係数（R²）\n\n過学習の検出：\n• 訓練誤差 vs 検証誤差\n• 学習曲線の分析\n• 正則化の適用"
+    },
+    {
+      "page": 10,
+      "title": "まとめと今後の展望",
+      "content": "本日学んだ重要ポイント\n\nキーコンセプト：\n• 教師あり・なし学習の違い\n• ニューラルネットワークの仕組み\n• 深層学習の応用範囲\n• 実務での活用方法\n\n今後のトレンド：\n• 転移学習（Transfer Learning）\n• 連合学習（Federated Learning）\n• 説明可能AI（XAI）\n• AutoML\n\n学習リソース：\n• オンライン講座\n• 実践プロジェクト\n• コミュニティ参加\n\n継続的な学習が成功の鍵！"
+    }
+  ],
+  "transcript_segments": [
+    {
+      "segment_id": "seg_001",
+      "text": "皆さん、こんにちは。本日のテーマは機械学習の基礎知識です。",
+      "start_time": 0.0,
+      "end_time": 4.0,
+      "expected_slide": 1,
+      "keywords": ["本日", "テーマ", "機械学習", "基礎知識"]
+    },
+    {
+      "segment_id": "seg_002",
+      "text": "データサイエンスの重要な分野として、ビジネスと研究で広く活用されています。",
+      "start_time": 4.0,
+      "end_time": 8.5,
+      "expected_slide": 1,
+      "keywords": ["データサイエンス", "分野", "ビジネス", "研究", "活用"]
+    },
+    {
+      "segment_id": "seg_003",
+      "text": "本講義の目標は、機械学習の概念を理解し、基本的な手法を習得することです。",
+      "start_time": 8.5,
+      "end_time": 13.5,
+      "expected_slide": 1,
+      "keywords": ["講義", "目標", "概念", "理解", "手法", "習得"]
+    },
+    {
+      "segment_id": "seg_004",
+      "text": "では、機械学習の定義について説明します。",
+      "start_time": 13.5,
+      "end_time": 16.5,
+      "expected_slide": 2,
+      "keywords": ["定義", "説明"]
+    },
+    {
+      "segment_id": "seg_005",
+      "text": "コンピュータが明示的にプログラムされることなく、データから学習する能力です。",
+      "start_time": 16.5,
+      "end_time": 21.0,
+      "expected_slide": 2,
+      "keywords": ["コンピュータ", "プログラム", "データ", "学習", "能力"]
+    },
+    {
+      "segment_id": "seg_006",
+      "text": "経験から自動的に改善し、パターン認識による予測を行います。",
+      "start_time": 21.0,
+      "end_time": 25.0,
+      "expected_slide": 2,
+      "keywords": ["経験", "自動的", "改善", "パターン認識", "予測"]
+    },
+    {
+      "segment_id": "seg_007",
+      "text": "主な分類として、教師あり学習、教師なし学習、強化学習があります。",
+      "start_time": 25.0,
+      "end_time": 29.5,
+      "expected_slide": 2,
+      "keywords": ["分類", "教師あり学習", "教師なし学習", "強化学習"]
+    },
+    {
+      "segment_id": "seg_008",
+      "text": "まず、教師あり学習について詳しく見ていきましょう。",
+      "start_time": 29.5,
+      "end_time": 32.5,
+      "expected_slide": 3,
+      "keywords": ["教師あり学習", "詳しく"]
+    },
+    {
+      "segment_id": "seg_009",
+      "text": "教師あり学習では、入力と正解ラベルのペアから学習します。",
+      "start_time": 32.5,
+      "end_time": 36.5,
+      "expected_slide": 3,
+      "keywords": ["入力", "正解", "ラベル", "ペア"]
+    },
+    {
+      "segment_id": "seg_010",
+      "text": "分類タスクでは、スパムメール検出や画像認識などが代表的です。",
+      "start_time": 36.5,
+      "end_time": 40.5,
+      "expected_slide": 3,
+      "keywords": ["分類", "タスク", "スパムメール", "検出", "画像認識"]
+    },
+    {
+      "segment_id": "seg_011",
+      "text": "回帰タスクでは、売上予測や価格推定などの連続値を予測します。",
+      "start_time": 40.5,
+      "end_time": 45.0,
+      "expected_slide": 3,
+      "keywords": ["回帰", "タスク", "売上予測", "価格推定", "連続値"]
+    },
+    {
+      "segment_id": "seg_012",
+      "text": "決定木、ランダムフォレスト、SVMなどのアルゴリズムが使われます。",
+      "start_time": 45.0,
+      "end_time": 49.5,
+      "expected_slide": 3,
+      "keywords": ["決定木", "ランダムフォレスト", "SVM", "アルゴリズム"]
+    },
+    {
+      "segment_id": "seg_013",
+      "text": "次に、教師なし学習について説明します。",
+      "start_time": 49.5,
+      "end_time": 52.5,
+      "expected_slide": 4,
+      "keywords": ["教師なし学習", "説明"]
+    },
+    {
+      "segment_id": "seg_014",
+      "text": "教師なし学習は、ラベルなしデータから構造を発見します。",
+      "start_time": 52.5,
+      "end_time": 56.5,
+      "expected_slide": 4,
+      "keywords": ["ラベルなし", "データ", "構造", "発見"]
+    },
+    {
+      "segment_id": "seg_015",
+      "text": "クラスタリングでは、顧客セグメンテーションや異常検知に使われます。",
+      "start_time": 56.5,
+      "end_time": 60.5,
+      "expected_slide": 4,
+      "keywords": ["クラスタリング", "顧客", "セグメンテーション", "異常検知"]
+    },
+    {
+      "segment_id": "seg_016",
+      "text": "K-means法や主成分分析が代表的なアルゴリズムです。",
+      "start_time": 60.5,
+      "end_time": 64.5,
+      "expected_slide": 4,
+      "keywords": ["K-means", "主成分分析", "アルゴリズム"]
+    },
+    {
+      "segment_id": "seg_017",
+      "text": "ここで、ニューラルネットワークの構造について説明します。",
+      "start_time": 64.5,
+      "end_time": 68.0,
+      "expected_slide": 5,
+      "keywords": ["ニューラルネットワーク", "構造", "説明"]
+    },
+    {
+      "segment_id": "seg_018",
+      "text": "生物の神経系を模倣した計算モデルで、入力層、隠れ層、出力層から構成されます。",
+      "start_time": 68.0,
+      "end_time": 73.5,
+      "expected_slide": 5,
+      "keywords": ["神経系", "模倣", "計算モデル", "入力層", "隠れ層", "出力層"]
+    },
+    {
+      "segment_id": "seg_019",
+      "text": "順伝播、誤差計算、逆伝播、勾配降下法というメカニズムで学習します。",
+      "start_time": 73.5,
+      "end_time": 78.5,
+      "expected_slide": 5,
+      "keywords": ["順伝播", "誤差計算", "逆伝播", "勾配降下法"]
+    },
+    {
+      "segment_id": "seg_020",
+      "text": "活性化関数として、ReLU、Sigmoid、Tanhが使われます。",
+      "start_time": 78.5,
+      "end_time": 82.5,
+      "expected_slide": 5,
+      "keywords": ["活性化関数", "ReLU", "Sigmoid", "Tanh"]
+    },
+    {
+      "segment_id": "seg_021",
+      "text": "さらに、深層学習について見ていきましょう。",
+      "start_time": 82.5,
+      "end_time": 85.5,
+      "expected_slide": 6,
+      "keywords": ["深層学習"]
+    },
+    {
+      "segment_id": "seg_022",
+      "text": "CNNは画像処理に特化し、畳み込み層とプーリング層を使います。",
+      "start_time": 85.5,
+      "end_time": 90.0,
+      "expected_slide": 6,
+      "keywords": ["CNN", "画像処理", "畳み込み層", "プーリング層"]
+    },
+    {
+      "segment_id": "seg_023",
+      "text": "RNNは時系列データ処理に適しており、LSTMやGRUが使われます。",
+      "start_time": 90.0,
+      "end_time": 94.5,
+      "expected_slide": 6,
+      "keywords": ["RNN", "時系列", "データ処理", "LSTM", "GRU"]
+    },
+    {
+      "segment_id": "seg_024",
+      "text": "Transformerはattention機構を使い、BERTやGPTなど最新の言語モデルの基礎です。",
+      "start_time": 94.5,
+      "end_time": 100.0,
+      "expected_slide": 6,
+      "keywords": ["Transformer", "attention", "BERT", "GPT", "言語モデル"]
+    },
+    {
+      "segment_id": "seg_025",
+      "text": "実世界での応用例を見ていきましょう。",
+      "start_time": 100.0,
+      "end_time": 102.5,
+      "expected_slide": 7,
+      "keywords": ["実世界", "応用例"]
+    },
+    {
+      "segment_id": "seg_026",
+      "text": "コンピュータビジョンでは、顔認識システムや自動運転車の物体検出が実用化されています。",
+      "start_time": 102.5,
+      "end_time": 108.0,
+      "expected_slide": 7,
+      "keywords": ["コンピュータビジョン", "顔認識", "自動運転", "物体検出"]
+    },
+    {
+      "segment_id": "seg_027",
+      "text": "自然言語処理では、機械翻訳やチャットボット、感情分析に活用されています。",
+      "start_time": 108.0,
+      "end_time": 113.0,
+      "expected_slide": 7,
+      "keywords": ["自然言語処理", "機械翻訳", "チャットボット", "感情分析"]
+    },
+    {
+      "segment_id": "seg_028",
+      "text": "NetflixやAmazonの推薦システムも機械学習で実現されています。",
+      "start_time": 113.0,
+      "end_time": 117.5,
+      "expected_slide": 7,
+      "keywords": ["Netflix", "Amazon", "推薦システム"]
+    },
+    {
+      "segment_id": "seg_029",
+      "text": "金融分野では、株価予測や信用リスク評価、不正検知に使われます。",
+      "start_time": 117.5,
+      "end_time": 122.5,
+      "expected_slide": 7,
+      "keywords": ["金融", "株価予測", "信用リスク", "不正検知"]
+    },
+    {
+      "segment_id": "seg_030",
+      "text": "モデル構築のワークフローについて説明します。",
+      "start_time": 122.5,
+      "end_time": 125.5,
+      "expected_slide": 8,
+      "keywords": ["モデル構築", "ワークフロー", "説明"]
+    },
+    {
+      "segment_id": "seg_031",
+      "text": "まず、問題定義として、ビジネス目標と成功指標を明確にします。",
+      "start_time": 125.5,
+      "end_time": 130.0,
+      "expected_slide": 8,
+      "keywords": ["問題定義", "ビジネス目標", "成功指標"]
+    },
+    {
+      "segment_id": "seg_032",
+      "text": "データ準備では、収集、統合、クリーニング、特徴量エンジニアリングを行います。",
+      "start_time": 130.0,
+      "end_time": 135.5,
+      "expected_slide": 8,
+      "keywords": ["データ準備", "収集", "統合", "クリーニング", "特徴量エンジニアリング"]
+    },
+    {
+      "segment_id": "seg_033",
+      "text": "モデル選択では、アルゴリズムを比較し、ハイパーパラメータを調整します。",
+      "start_time": 135.5,
+      "end_time": 140.5,
+      "expected_slide": 8,
+      "keywords": ["モデル選択", "アルゴリズム", "比較", "ハイパーパラメータ", "調整"]
+    },
+    {
+      "segment_id": "seg_034",
+      "text": "訓練と検証では、交差検証を行い、テストデータで評価します。",
+      "start_time": 140.5,
+      "end_time": 145.0,
+      "expected_slide": 8,
+      "keywords": ["訓練", "検証", "交差検証", "テストデータ", "評価"]
+    },
+    {
+      "segment_id": "seg_035",
+      "text": "モデル評価指標について見ていきましょう。",
+      "start_time": 145.0,
+      "end_time": 148.0,
+      "expected_slide": 9,
+      "keywords": ["モデル評価指標"]
+    },
+    {
+      "segment_id": "seg_036",
+      "text": "分類問題では、正解率、適合率、再現率、F1スコアを使います。",
+      "start_time": 148.0,
+      "end_time": 153.0,
+      "expected_slide": 9,
+      "keywords": ["分類問題", "正解率", "適合率", "再現率", "F1スコア"]
+    },
+    {
+      "segment_id": "seg_037",
+      "text": "混同行列やROC曲線、AUCも重要な指標です。",
+      "start_time": 153.0,
+      "end_time": 157.0,
+      "expected_slide": 9,
+      "keywords": ["混同行列", "ROC曲線", "AUC"]
+    },
+    {
+      "segment_id": "seg_038",
+      "text": "回帰問題では、平均二乗誤差、平均絶対誤差、決定係数を使います。",
+      "start_time": 157.0,
+      "end_time": 162.0,
+      "expected_slide": 9,
+      "keywords": ["回帰問題", "平均二乗誤差", "平均絶対誤差", "決定係数"]
+    },
+    {
+      "segment_id": "seg_039",
+      "text": "過学習の検出には、訓練誤差と検証誤差を比較し、正則化を適用します。",
+      "start_time": 162.0,
+      "end_time": 167.5,
+      "expected_slide": 9,
+      "keywords": ["過学習", "訓練誤差", "検証誤差", "正則化"]
+    },
+    {
+      "segment_id": "seg_040",
+      "text": "最後に、まとめと今後の展望です。",
+      "start_time": 167.5,
+      "end_time": 170.0,
+      "expected_slide": 10,
+      "keywords": ["まとめ", "今後", "展望"]
+    },
+    {
+      "segment_id": "seg_041",
+      "text": "本日は、教師あり学習と教師なし学習の違い、ニューラルネットワークの仕組みを学びました。",
+      "start_time": 170.0,
+      "end_time": 176.0,
+      "expected_slide": 10,
+      "keywords": ["教師あり学習", "教師なし学習", "違い", "ニューラルネットワーク", "仕組み"]
+    },
+    {
+      "segment_id": "seg_042",
+      "text": "今後のトレンドとして、転移学習、連合学習、説明可能AIが重要になります。",
+      "start_time": 176.0,
+      "end_time": 181.5,
+      "expected_slide": 10,
+      "keywords": ["トレンド", "転移学習", "連合学習", "説明可能AI"]
+    },
+    {
+      "segment_id": "seg_043",
+      "text": "継続的な学習が成功の鍵です。以上で講義を終わります。ご清聴ありがとうございました。",
+      "start_time": 181.5,
+      "end_time": 187.0,
+      "expected_slide": 10,
+      "keywords": ["継続的", "学習", "成功", "鍵", "講義", "ご清聴"]
+    }
+  ]
+}

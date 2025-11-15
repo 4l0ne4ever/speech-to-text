@@ -7,8 +7,11 @@ Google Cloud's Speech-to-Text V2 API optimized for Japanese.
 
 import logging
 import time
-from typing import Optional, List, Tuple
+import json
+import tempfile
+from typing import Optional, List, Tuple, Dict
 from datetime import datetime
+from pathlib import Path
 
 from google.cloud.speech_v2 import SpeechClient
 from google.cloud.speech_v2.types import cloud_speech
@@ -21,6 +24,7 @@ from ..models import (
     WordInfo,
     ProcessingStatus,
 )
+from ..slide_processing import SlideProcessor, PDFProcessingError
 
 logger = logging.getLogger(__name__)
 
@@ -537,12 +541,25 @@ class SpeechToTextService:
         self,
         gcs_uri: str,
         presentation_id: str,
-        options: Optional[TranscriptionOptions] = None
-    ) -> TranscriptionResult:
+        options: Optional[TranscriptionOptions] = None,
+        pdf_gcs_uri: Optional[str] = None,
+        storage_service = None
+    ) -> Tuple[TranscriptionResult, Optional[Dict]]:
         """
-        Synchronous wrapper for transcribe_audio.
+        Synchronous wrapper for transcribe_audio with optional slide matching.
         
         This is a convenience method for non-async contexts.
+        
+        Args:
+            gcs_uri: GCS URI of audio file
+            presentation_id: Unique identifier for presentation
+            options: Transcription options
+            pdf_gcs_uri: Optional GCS URI of PDF file for slide matching
+            storage_service: Optional GCSStorageService instance for PDF download
+            
+        Returns:
+            tuple of (TranscriptionResult, slide_matching_results)
+            slide_matching_results is None if pdf_gcs_uri not provided
         """
         import asyncio
         
@@ -554,6 +571,184 @@ class SpeechToTextService:
                 "Use transcribe_audio() instead."
             )
         
-        return loop.run_until_complete(
+        # Get transcription result
+        transcription_result = loop.run_until_complete(
             self.transcribe_audio(gcs_uri, presentation_id, options)
         )
+        
+        # Process slides if PDF provided
+        slide_results = None
+        if pdf_gcs_uri and storage_service:
+            try:
+                slide_results = self._process_slides(
+                    transcription_result,
+                    pdf_gcs_uri,
+                    presentation_id,
+                    storage_service
+                )
+                logger.info(
+                    f"Slide matching completed: "
+                    f"{slide_results['matched_count']}/{slide_results['total_segments']} segments matched"
+                )
+            except Exception as e:
+                logger.error(f"Slide matching failed: {e}")
+                # Don't fail the entire transcription if slide matching fails
+                slide_results = {'error': str(e)}
+        
+        return transcription_result, slide_results
+    
+    def _process_slides(
+        self,
+        transcription_result: TranscriptionResult,
+        pdf_gcs_uri: str,
+        presentation_id: str,
+        storage_service
+    ) -> Dict:
+        """
+        Process PDF and match transcript segments to slides.
+        
+        Args:
+            transcription_result: Transcription result with segments
+            pdf_gcs_uri: GCS URI of PDF file
+            presentation_id: Presentation identifier
+            storage_service: GCSStorageService for downloading PDF
+            
+        Returns:
+            dict with matched_segments, timeline, stats
+        """
+        logger.info(f"Processing slides for presentation {presentation_id}")
+        
+        # Download PDF to temp file
+        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp_pdf:
+            pdf_path = tmp_pdf.name
+            
+        try:
+            # Download from GCS
+            storage_service.download_file(pdf_gcs_uri, pdf_path)
+            logger.info(f"Downloaded PDF from {pdf_gcs_uri}")
+            
+            # Initialize slide processor
+            processor = SlideProcessor(
+                exact_weight=1.0,
+                fuzzy_weight=0.7,
+                semantic_weight=0.7,
+                title_boost=2.0,
+                temporal_boost=0.05,
+                min_score_threshold=1.5,
+                switch_multiplier=1.1,
+                use_embeddings=True
+            )
+            
+            # Process PDF
+            pdf_stats = processor.process_pdf(pdf_path)
+            logger.info(
+                f"Processed PDF: {pdf_stats['slide_count']} slides, "
+                f"{pdf_stats['keywords_count']} keywords"
+            )
+            
+            # Convert transcription segments to matching format
+            segments = []
+            for seg in transcription_result.segments:
+                segments.append({
+                    'text': seg.text,
+                    'start_time': seg.start_time,
+                    'end_time': seg.end_time,
+                    'confidence': seg.confidence
+                })
+            
+            # Match segments to slides
+            matched_segments = processor.match_transcript(segments)
+            
+            # Generate timeline
+            timeline = processor.generate_timeline(matched_segments)
+            
+            # Calculate stats
+            matched_count = sum(1 for s in matched_segments if s.get('slide_id') is not None)
+            accuracy = matched_count / len(matched_segments) if matched_segments else 0.0
+            avg_confidence = sum(s.get('confidence', 0.0) for s in matched_segments) / len(matched_segments)
+            
+            return {
+                'matched_segments': matched_segments,
+                'timeline': timeline,
+                'stats': {
+                    'total_segments': len(matched_segments),
+                    'matched_count': matched_count,
+                    'accuracy': accuracy,
+                    'avg_confidence': avg_confidence,
+                    'slide_count': pdf_stats['slide_count'],
+                    'keywords_count': pdf_stats['keywords_count'],
+                    'has_embeddings': pdf_stats['has_embeddings']
+                }
+            }
+            
+        except PDFProcessingError as e:
+            logger.error(f"PDF processing error: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Slide processing error: {e}")
+            raise
+        finally:
+            # Clean up temp file
+            try:
+                Path(pdf_path).unlink()
+            except Exception:
+                pass
+    
+    def save_slide_results(
+        self,
+        slide_results: Dict,
+        presentation_id: str,
+        storage_service,
+        gcs_bucket: str
+    ) -> Tuple[str, str]:
+        """
+        Save slide matching results to GCS.
+        
+        Args:
+            slide_results: Output from _process_slides()
+            presentation_id: Presentation identifier
+            storage_service: GCSStorageService instance
+            gcs_bucket: GCS bucket name
+            
+        Returns:
+            tuple of (matches_gcs_uri, timeline_gcs_uri)
+        """
+        # Save matched segments
+        matches_path = f"presentations/{presentation_id}/slides/matches.json"
+        matches_gcs_uri = f"gs://{gcs_bucket}/{matches_path}"
+        
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as tmp:
+            json.dump({
+                'presentation_id': presentation_id,
+                'matched_segments': slide_results['matched_segments'],
+                'stats': slide_results['stats'],
+                'timestamp': datetime.utcnow().isoformat()
+            }, tmp, indent=2, ensure_ascii=False)
+            tmp_path = tmp.name
+        
+        try:
+            storage_service.upload_file(tmp_path, matches_gcs_uri)
+            logger.info(f"Saved matches to {matches_gcs_uri}")
+        finally:
+            Path(tmp_path).unlink()
+        
+        # Save timeline
+        timeline_path = f"presentations/{presentation_id}/slides/timeline.json"
+        timeline_gcs_uri = f"gs://{gcs_bucket}/{timeline_path}"
+        
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as tmp:
+            json.dump({
+                'presentation_id': presentation_id,
+                'timeline': slide_results['timeline'],
+                'timestamp': datetime.utcnow().isoformat()
+            }, tmp, indent=2, ensure_ascii=False)
+            tmp_path = tmp.name
+        
+        try:
+            storage_service.upload_file(tmp_path, timeline_gcs_uri)
+            logger.info(f"Saved timeline to {timeline_gcs_uri}")
+        finally:
+            Path(tmp_path).unlink()
+        
+        return matches_gcs_uri, timeline_gcs_uri
+
