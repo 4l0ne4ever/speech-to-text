@@ -18,6 +18,8 @@ Usage:
 import sys
 import queue
 import pyaudio
+import time
+import threading
 from pathlib import Path
 
 # Add src to path
@@ -56,11 +58,22 @@ class MicrophoneStream:
 
     def __enter__(self):
         self._audio = pyaudio.PyAudio()
+        
+        # Find MacBook Pro Microphone (more reliable than default)
+        device_index = None
+        for i in range(self._audio.get_device_count()):
+            info = self._audio.get_device_info_by_index(i)
+            if "MacBook Pro Microphone" in info['name'] and info['maxInputChannels'] > 0:
+                device_index = i
+                print(f"🎤 Using: {info['name']}")
+                break
+        
         self._stream = self._audio.open(
             format=FORMAT,
             channels=CHANNELS,
             rate=self._rate,
             input=True,
+            input_device_index=device_index,  # Explicitly set device
             frames_per_buffer=self._chunk,
             stream_callback=self._fill_buffer,
         )
@@ -117,10 +130,10 @@ def on_result(result):
     """Callback for streaming results"""
     if result.is_final:
         # Final result - print in green
-        print(f"{GREEN}✓ {result.transcript}{RESET}")
+        print(f"{GREEN}✓ {result.text}{RESET}")
     else:
         # Interim result - print in gray on same line
-        print(f"\r{GRAY}  {result.transcript}{RESET}", end='', flush=True)
+        print(f"\r{GRAY}  {result.text}{RESET}", end='', flush=True)
 
 
 def on_alert(alert):
@@ -137,17 +150,24 @@ def main():
     
     # Check for Google Cloud credentials
     import os
-    if not os.getenv('GOOGLE_APPLICATION_CREDENTIALS'):
-        print(f"{RED}❌ Error: GOOGLE_APPLICATION_CREDENTIALS not set{RESET}\n")
+    import json
+    
+    # Default credentials path
+    default_creds = "/Users/duongcongthuyet/Downloads/workspace/AI /speech_to_text/speech-processing-prod-9ffbefa55e2c.json"
+    credentials_path = os.getenv('GOOGLE_APPLICATION_CREDENTIALS', default_creds)
+    
+    if not os.path.exists(credentials_path):
+        print(f"{RED}❌ Error: Credentials file not found: {credentials_path}{RESET}\n")
         print("Please set your Google Cloud credentials:")
         print("  export GOOGLE_APPLICATION_CREDENTIALS=/path/to/your/credentials.json\n")
         sys.exit(1)
     
-    # Get project ID
+    # Get project ID from credentials file if not set
     project_id = os.getenv('GOOGLE_CLOUD_PROJECT')
     if not project_id:
-        print(f"{YELLOW}⚠️  GOOGLE_CLOUD_PROJECT not set, using default{RESET}")
-        project_id = "your-project-id"
+        with open(credentials_path) as f:
+            creds = json.load(f)
+            project_id = creds.get('project_id', 'your-project-id')
     
     print(f"🔗 Connecting to Google Cloud Speech API...")
     print(f"   Project: {project_id}")
@@ -159,7 +179,7 @@ def main():
         # Initialize session manager with result callback
         session_manager = StreamingSessionManager(
             project_id=project_id,
-            credentials_path=os.getenv('GOOGLE_APPLICATION_CREDENTIALS'),
+            credentials_path=credentials_path,
             result_callback=on_result
         )
         
@@ -181,6 +201,7 @@ def main():
         # Create session
         presentation_id = "live-demo"
         import uuid
+        import threading
         session_id = f"demo-{uuid.uuid4().hex[:8]}"
         
         print(f"📝 Creating streaming session...")
@@ -189,34 +210,58 @@ def main():
             presentation_id=presentation_id
         )
         
-        # Start session
-        print(f"🚀 Starting speech recognition...\n")
-        session_manager.start_session(
-            session_id=session_id,
-            language_code="ja-JP",
-            model="latest_long",
-            enable_interim_results=True
-        )
+        # Get the session object to access the queue directly
+        session = session_manager.get_session(session_id)
         
-        print(f"{BOLD}🎙️  Recording... (speak now){RESET}\n")
-        print("-"*80 + "\n")
-        
-        # Stream from microphone
+        # Open microphone and start capturing audio
+        print(f"{BOLD}🎙️  Opening microphone...{RESET}")
         with MicrophoneStream(RATE, CHUNK) as stream:
             audio_generator = stream.generator()
             
+            # Start a background thread to feed audio into the queue immediately
+            # Put directly into queue, bypassing status check
+            def audio_feeder():
+                """Feed audio chunks into the session queue"""
+                try:
+                    for chunk in audio_generator:
+                        if chunk:
+                            # Put directly into queue (bypasses ACTIVE status check)
+                            try:
+                                session.audio_queue.put(chunk, timeout=1.0)
+                            except queue.Full:
+                                print(f"⚠️  Audio queue full, dropping chunk")
+                except Exception as e:
+                    print(f"Audio feeder error: {e}")
+            
+            feeder_thread = threading.Thread(target=audio_feeder, daemon=True)
+            feeder_thread.start()
+            
+            # Give the feeder a moment to buffer some audio
+            print(f"🔊 Buffering audio...")
+            time.sleep(0.5)
+            
+            # Now start the Google Cloud session with audio already in the queue
+            print(f"🚀 Starting speech recognition...\n")
+            print(f"{BOLD}Speak now!{RESET}\n")
+            print("-"*80 + "\n")
+            
+            session_manager.start_session(
+                session_id=session_id,
+                language_code="ja-JP",
+                model="latest_long",
+                enable_interim_results=True
+            )
+            
+            # Keep the main thread alive while audio is streaming
             try:
-                for chunk in audio_generator:
-                    if chunk:
-                        # Send audio chunk to Google
-                        session_manager.send_audio_chunk(session_id, chunk)
-                        
+                while feeder_thread.is_alive():
+                    time.sleep(0.1)
             except KeyboardInterrupt:
                 print(f"\n\n{YELLOW}⏹️  Stopping...{RESET}")
-        
-        # Stop session
-        print(f"\n{BOLD}Finalizing session...{RESET}")
-        summary = session_manager.stop_session(session_id)
+            
+            # Close session (still inside the with block)
+            print(f"\n{BOLD}Finalizing session...{RESET}")
+            summary = session_manager.close_session(session_id)
         
         # Print statistics
         print("\n" + "="*80)

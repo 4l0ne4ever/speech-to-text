@@ -277,8 +277,8 @@ class StreamingSessionManager:
                 # Subsequent requests: audio chunks from queue
                 while not session.stop_listener.is_set():
                     try:
-                        # Get chunk from queue with timeout
-                        chunk = session.audio_queue.get(timeout=0.1)
+                        # Get chunk from queue - block until audio is available
+                        chunk = session.audio_queue.get(timeout=5.0)  # Longer timeout
                         if chunk is None:  # Sentinel value to stop
                             break
                         
@@ -286,7 +286,9 @@ class StreamingSessionManager:
                             audio=chunk
                         )
                     except queue.Empty:
-                        continue  # No audio available, keep waiting
+                        # If no audio for 5 seconds, log warning but continue
+                        logger.warning(f"No audio received for session {session_id} after 5s")
+                        continue
             
             # Open bidirectional gRPC stream
             session.stream = self.client.streaming_recognize(
